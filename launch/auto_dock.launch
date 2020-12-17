@@ -1,0 +1,24 @@
+<launch>
+
+  <node name="auto_dock" pkg="rr_auto_dock" type="auto_dock.py" output="screen">
+    <param name="cmd_vel_angular_rate" value="0.3" />
+    <param name="cmd_vel_linear_rate" value="0.1" />
+    <param name="undock_distance" value="0.7" />
+  </node>
+
+  <node pkg="aruco_detect" name="aruco_detect"
+    type="aruco_detect" output="screen" respawn="false">
+    <param name="publish_images" value="false" />
+    <param name="fiducial_len" value="0.1"/>
+    <param name="dictionary" value="8"/>
+    <param name="do_pose_estimation" value="true"/>
+  </node>
+
+  <include file="$(find realsense2_camera)/launch/rs_d435_camera_with_model.launch">
+  </include>
+
+  <include file="$(find rr_rover_zero_driver)/launch/teleop.launch">
+  </include>
+
+
+</launch>
