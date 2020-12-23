@@ -342,7 +342,7 @@ void FiducialsNode::imageCallback(const sensor_msgs::ImageConstPtr &msg)
         return; //return without doing anything
     }
 
-    ROS_INFO("Got image %d", msg->header.seq);
+    //ROS_INFO("Got image %d", msg->header.seq);
 
     fiducial_msgs::FiducialArray fva;
     fva.header.stamp = msg->header.stamp;
@@ -354,7 +354,7 @@ void FiducialsNode::imageCallback(const sensor_msgs::ImageConstPtr &msg)
         cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
 
         aruco::detectMarkers(cv_ptr->image, dictionary, corners, ids, detectorParams);
-        ROS_INFO("Detected %d markers", (int)ids.size());
+        //ROS_INFO("Detected %d markers", (int)ids.size());
 
         for (size_t i = 0; i < ids.size(); i++)
         {
@@ -644,6 +644,8 @@ FiducialsNode::FiducialsNode() : nh(), pnh("~"), it(nh)
 
     vertices_sub = nh.subscribe("fiducial_vertices", 1,
                                 &FiducialsNode::poseEstimateCallback, this);
+
+    ROS_INFO("GOT HERE AFTER VERTICES SUB");
     caminfo_sub = nh.subscribe("camera_info", 1,
                                &FiducialsNode::camInfoCallback, this);
 
@@ -699,12 +701,13 @@ FiducialsNode::FiducialsNode() : nh(), pnh("~"), it(nh)
     pnh.param<int>("perspectiveRemovePixelPerCell", detectorParams->perspectiveRemovePixelPerCell, 8);
     pnh.param<double>("polygonalApproxAccuracyRate", detectorParams->polygonalApproxAccuracyRate, 0.01); /* default 0.05 */
 
-    ROS_INFO("Aruco detection ready");
+    ROS_INFO("Aruco detection bready");
 }
 
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "aruco_detect");
+    ROS_INFO("Aruco detection bready");
 
     FiducialsNode *fd_node = new FiducialsNode();
 

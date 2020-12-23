@@ -4,15 +4,18 @@
     <param name="cmd_vel_angular_rate" value="0.3" />
     <param name="cmd_vel_linear_rate" value="0.1" />
     <param name="undock_distance" value="0.7" />
+    <param name="turn_radians" value="0.2" />
+    <param name="approach_angle" value="0.2" />
+    <param name="approach_radius" value="2.0" />
+    <param name="aruco_callback_counter_max" value="5" />
+    <param name="max_centering_count" value="50" />
+    <param name="jog_distance" value="0.2" />
+    <param name="final_approach_distance" value="0.3" />
+    <param name="wiggle_radians" value="-0.5" />
   </node>
 
-  <node pkg="aruco_detect" name="aruco_detect"
-    type="aruco_detect" output="screen" respawn="false">
-    <param name="publish_images" value="false" />
-    <param name="fiducial_len" value="0.1"/>
-    <param name="dictionary" value="8"/>
-    <param name="do_pose_estimation" value="true"/>
-  </node>
+  <include file="$(find rr_auto_dock)/launch/aruco_detect.launch">
+  </include>
 
   <include file="$(find realsense2_camera)/launch/rs_d435_camera_with_model.launch">
   </include>
@@ -20,5 +23,7 @@
   <include file="$(find rr_rover_zero_driver)/launch/teleop.launch">
   </include>
 
+  <!-- <include file="$(find wibotic_connector_can)/launch/wibotic_connector_can.launch">
+  </include> -->
 
 </launch>

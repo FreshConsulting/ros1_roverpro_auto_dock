@@ -2,21 +2,21 @@
 <launch>
   <!-- namespace for camera input -->
   <arg name="camera" default="/camera"/>
-  <arg name="image" default="image"/>
-  <arg name="transport" default="compressed"/>
-  <arg name="fiducial_len" default="0.14"/>
-  <arg name="dictionary" default="7"/>
+  <arg name="image" default="color"/>
+  <arg name="transport" default="image_raw"/>
+  <arg name="fiducial_len" default="0.16"/>
+  <arg name="dictionary" default="8"/>
   <arg name="do_pose_estimation" default="true"/>
 
-  <node pkg="aruco_detect" name="aruco_detect"
+  <node pkg="rr_auto_dock" name="aruco_detect"
     type="aruco_detect" output="screen" respawn="false">
-    <param name="image_transport" value="$(arg transport)"/>
+    <!-- <param name="image_transport" value="$(arg transport)"/> -->
     <param name="publish_images" value="true" />
     <param name="fiducial_len" value="$(arg fiducial_len)"/>
     <param name="dictionary" value="$(arg dictionary)"/>
     <param name="do_pose_estimation" value="$(arg do_pose_estimation)"/>
-    <remap from="/camera/compressed" 
+    <remap from="/camera" 
         to="$(arg camera)/$(arg image)/$(arg transport)"/>
-    <remap from="/camera_info" to="$(arg camera)/camera_info"/>
+    <remap from="/camera_info" to="$(arg camera)/color/camera_info"/>
   </node>
 </launch>
