@@ -433,9 +433,9 @@ void FiducialsNode::poseEstimateCallback(const FiducialArrayConstPtr &msg)
                 aruco::drawAxis(cv_ptr->image, cameraMatrix, distortionCoeffs,
                                 rvecs[i], tvecs[i], (float)fiducial_len);
 
-                ROS_INFO("Detected id %d T %.2f %.2f %.2f R %.2f %.2f %.2f", ids[i],
-                         tvecs[i][0], tvecs[i][1], tvecs[i][2],
-                         rvecs[i][0], rvecs[i][1], rvecs[i][2]);
+                //ROS_INFO("Detected id %d T %.2f %.2f %.2f R %.2f %.2f %.2f", ids[i],
+                //         tvecs[i][0], tvecs[i][1], tvecs[i][2],
+                //         rvecs[i][0], rvecs[i][1], rvecs[i][2]);
 
                 if (std::count(ignoreIds.begin(), ignoreIds.end(), ids[i]) != 0)
                 {
@@ -445,8 +445,8 @@ void FiducialsNode::poseEstimateCallback(const FiducialArrayConstPtr &msg)
 
                 double angle = norm(rvecs[i]);
                 Vec3d axis = rvecs[i] / angle;
-                ROS_INFO("angle %f axis %f %f %f",
-                         angle, axis[0], axis[1], axis[2]);
+                // ROS_INFO("angle %f axis %f %f %f",
+                //          angle, axis[0], axis[1], axis[2]);
 
                 fiducial_msgs::FiducialTransform ft;
                 ft.fiducial_id = ids[i];
