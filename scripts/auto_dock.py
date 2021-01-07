@@ -165,7 +165,7 @@ class ArucoDockingManager(object):
         if self.docking_state == "undocked":
             self.disable_aruco_detections()
             self.undocked_state_fun()
-            self.in_range_service_call()
+            # self.in_range_service_call() - don't think we need to be checking this here
 
         if self.docking_state == "searching":
             self.enable_aruco_detections()
@@ -192,7 +192,7 @@ class ArucoDockingManager(object):
 
         if self.docking_state == "docked":
             self.disable_aruco_detections()
-            self.in_range_service_call()
+            # self.in_range_service_call()  # not sure if we need to be checking this here
 
         if self.docking_state == "docking_failed":
             self.disable_aruco_detections()
