@@ -32,7 +32,6 @@ class ArucoDockingManager(object):
     is_in_range = False  # charging station within coil range
 
     # don't think these booleans are actually used
-    is_final_wiggle = False
     is_in_action = False
     is_final_jog = False
     is_turning = False
@@ -52,7 +51,6 @@ class ArucoDockingManager(object):
         "approach",
         "final_approach",
         "wait_for_charge",
-        "final_wiggle",
         "docking_failed",
         "docked",
         "undock",
@@ -69,14 +67,14 @@ class ArucoDockingManager(object):
     action_state_msg = String()
     undocking_state_list = {"reversing", "turning"}
     undocking_state = ""
-    docking_state = "undocked"
+    docking_state = "undocked"  # initial state
     docking_state_msg = String()
     docking_state_msg.data = docking_state
     last_docking_state = ""
     last_action_state = ""
 
     def __init__(self):
-        self.MANAGER_PERIOD = 0.1
+
         # rad/s, negative is clockwise
         self.CMD_VEL_ANGULAR_RATE = rospy.get_param("~cmd_vel_angular_rate")
         self.CMD_VEL_LINEAR_RATE = rospy.get_param("~cmd_vel_linear_rate")  # m/s
@@ -85,26 +83,28 @@ class ArucoDockingManager(object):
         self.APPROACH_ANGLE = rospy.get_param("~approach_angle")  # max approach angle
         self.APPROACH_RADIUS = rospy.get_param(
             "~approach_radius"
-        )  # radius that uses max angle
+        )  # radius that uses max corrective angle
         self.ARUCO_CALLBACK_COUNTER_MAX = rospy.get_param("~aruco_callback_counter_max")
         self.MAX_CENTERING_COUNT = rospy.get_param("~max_centering_count")
         self.JOG_DISTANCE = rospy.get_param("~jog_distance")
         self.FINAL_APPROACH_DISTANCE = rospy.get_param("~final_approach_distance")
-        self.WIGGLE_RADIANS = rospy.get_param("~wiggle_radians")
         self.UNDOCK_DISTANCE = rospy.get_param("~undock_distance")
         self.CHARGE_WAIT_TIME = rospy.get_param("~charge_wait_time")
+        # travel distance is achieved by sending vel commands for [distance/linear_rate] seconds
+        # this is a correction based on testing; would need to be tuned for any given scenario
         self.open_loop_correction = rospy.get_param("~open_loop_correction")
 
+        self.MANAGER_PERIOD = 0.1
+        self.START_DELAY = 2.0  # is this necessary?
         self.MIN_TURN_PERIOD = 0.18
         self.MAX_RUN_TIMEOUT = 240  # in seconds
         self.ARUCO_SLOW_WARN_TIMEOUT = rospy.Duration(1)  # in seconds
         self.ARUCO_WAIT_TIMEOUT = 2  # in seconds
         self.CANCELLED_TIMEOUT = 10  # in seconds
-        self.START_DELAY = 2.0
         self.Z_TRANS_OFFSET = 0  # 0.5
-        self.DOCK_ARUCO_NUM = 0
 
         rospy.loginfo("Starting automatic docking.")
+
         # Publishers
         self.pub_aruco_detections_enable = rospy.Publisher(
             "/aruco_detect/enable", Bool, queue_size=1, latch=True
@@ -120,7 +120,7 @@ class ArucoDockingManager(object):
         )
         self.pub_docking_state.publish(self.docking_state_msg)
 
-        # Intialize Subscribers
+        # Subscribers
         self.sub_aruco_detect = rospy.Subscriber(
             "/fiducial_transforms",
             FiducialTransformArray,
@@ -158,6 +158,10 @@ class ArucoDockingManager(object):
 
     def state_manage_cb(self, event):
         # rospy.loginfo("%s | %s", self.docking_state, self.last_docking_state)
+        if self.docking_state == "undock":
+            self.disable_aruco_detections()
+            self.undock_state_fun()
+
         if self.docking_state == "undocked":
             self.disable_aruco_detections()
             self.undocked_state_fun()
@@ -186,16 +190,12 @@ class ArucoDockingManager(object):
             self.wait_for_charge_state_fun()
             self.in_range_service_call()
 
-        if self.docking_state == "docking_failed":
-            self.disable_aruco_detections()
-
         if self.docking_state == "docked":
             self.disable_aruco_detections()
             self.in_range_service_call()
 
-        if self.docking_state == "undock":
+        if self.docking_state == "docking_failed":
             self.disable_aruco_detections()
-            self.undock_state_fun()
 
         if self.docking_state == "cancelled":
             self.disable_aruco_detections()
@@ -275,18 +275,17 @@ class ArucoDockingManager(object):
             else:
                 if self.action_state == "jogging":
                     # continuing moving forward in 'approach' state using 'jog distance'
-                    # we get within 'final approach' distance
-                    rospy.loginfo("jogging in approach state")
+                    # until we get within 'final approach' distance
                     return
                 if abs(distance) < self.FINAL_APPROACH_DISTANCE:
                     # within final approach distance; move forward remaining distance
-                    rospy.loginfo(
-                        "entering final approach, moving forward %f meters", distance,
-                    )
                     self.openrover_stop()
                     self.openrover_forward(abs(distance))
                     self.set_docking_state("final_approach")
                 else:
+                    # not yet within final approach distance
+                    # creep forward some distance >= minimum jog distance
+                    # depending on how far away you are
                     self.openrover_forward(
                         np.maximum(
                             (abs(distance) - self.FINAL_APPROACH_DISTANCE) / 2,
@@ -294,7 +293,8 @@ class ArucoDockingManager(object):
                         )
                     )
         else:
-            rospy.loginfo("NOT IN VIEW BUT STILL FINAL APPROACHING")
+            # TODO/help - not sure what their logic was here -
+            # the marker is not in view but go to final approach?
             self.openrover_stop()
             self.openrover_forward(self.FINAL_APPROACH_DISTANCE)
             self.set_docking_state("final_approach")
@@ -309,10 +309,12 @@ class ArucoDockingManager(object):
             return
         if self.action_state == "":
             # the linear timer for the forward command called in approach_state_fun
-            # has timed out and the rover has stopped
+            # has timed out and the rover has stopped (presumably adjacent to charger)
             self.set_docking_state("wait_for_charge")
 
     def wait_for_charge_state_fun(self):
+        # sometimes can take a couple seconds for the in_range or charge
+        # confirmation to be received
         if self.action_state == "":
             rospy.loginfo("WAITING FOR CHARGE")
             self.set_action_state("waiting")
@@ -360,7 +362,6 @@ class ArucoDockingManager(object):
 
         self.is_looking = False
         self.is_undocked = True
-        self.is_final_wiggle = False
         self.is_in_action = False
         self.is_final_jog = False
         self.is_turning = False
@@ -597,7 +598,7 @@ class ArucoDockingManager(object):
     def in_range_service_call(self):
         try:
             data = self.in_range_service(name="CCHK").value
-            # rospy.loginfo(data)
+            # rospy.loginfo("wibotics service call gave: %s", data)
             if data == 1409286812:
                 self.is_in_range = True
             self.docked_fun()

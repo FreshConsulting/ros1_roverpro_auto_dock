@@ -11,7 +11,6 @@
     <param name="max_centering_count" value="50" />
     <param name="jog_distance" value="0.15" />
     <param name="final_approach_distance" value="0.8" />
-    <param name="wiggle_radians" value="-0.5" />
     <param name="charge_wait_time" value="8" />
     <param name="open_loop_correction" value="0.6" />
   </node>
