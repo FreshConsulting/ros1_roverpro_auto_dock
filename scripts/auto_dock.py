@@ -17,6 +17,7 @@ from fiducial_msgs.msg import FiducialTransformArray
 from tf.transformations import *
 
 from wibotic_msg.srv import ReadParameter
+from rr_auto_dock.msg import dockAction, undockAction
 
 WIBOTICS_ANTENNA_DETECTED = 1409286812
 MANAGER_PERIOD = 0.1

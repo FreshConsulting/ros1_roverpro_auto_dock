@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   message_generation
   nodelet
+  actionlib_msgs
 )
 
 find_package(OpenCV REQUIRED)
@@ -38,20 +39,23 @@ add_service_files(
   InitializeMap.srv
 )
 
-find_package(catkin REQUIRED genmsg actionlib_msgs)
 add_action_files(
-  DIRECTORY action 
   FILES 
   dock.action 
   undock.action
 )
 
-generate_messages(DEPENDENCIES actionlib_msgs)
+generate_messages(
+  DEPENDENCIES 
+  actionlib_msgs
+  std_msgs
+  visualization_msgs
+)
 
 catkin_package(
   LIBRARIES image_sub_nodelet
   INCLUDE_DIRS DEPENDS OpenCV
-  CATKIN_DEPENDS nodelet message_runtime roscpp std_msgs
+  CATKIN_DEPENDS nodelet message_runtime roscpp std_msgs actionlib_msgs
 )
 
 
