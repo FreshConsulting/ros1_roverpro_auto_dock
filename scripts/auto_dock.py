@@ -15,6 +15,7 @@ from geometry_msgs.msg import TwistStamped
 from geometry_msgs.msg import Transform
 from fiducial_msgs.msg import FiducialTransformArray
 from wibotic_msg.srv import ReadParameter
+from rr_auto_dock.msg import dockAction, undockAction
 
 # from tf.msgs import tf
 from tf.transformations import *
