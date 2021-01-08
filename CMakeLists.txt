@@ -38,6 +38,16 @@ add_service_files(
   InitializeMap.srv
 )
 
+find_package(catkin REQUIRED genmsg actionlib_msgs)
+add_action_files(
+  DIRECTORY action 
+  FILES 
+  dock.action 
+  undock.action
+)
+
+generate_messages(DEPENDENCIES actionlib_msgs)
+
 catkin_package(
   LIBRARIES image_sub_nodelet
   INCLUDE_DIRS DEPENDS OpenCV
