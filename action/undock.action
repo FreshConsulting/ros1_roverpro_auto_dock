@@ -1,0 +1,8 @@
+#goal
+bool undock
+---
+#result
+bool undocked
+---
+#feedback
+string docking_state
