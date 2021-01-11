@@ -14,9 +14,11 @@ from geometry_msgs.msg import Twist
 from geometry_msgs.msg import TwistStamped
 from geometry_msgs.msg import Transform
 from fiducial_msgs.msg import FiducialTransformArray
+from tf.transformations import *
+
 from wibotic_msg.srv import ReadParameter
 
-from tf.transformations import *
+WIBOTICS_ANTENNA_DETECTED = 1409286812
 
 
 class ArucoDockingManager(object):
@@ -29,16 +31,6 @@ class ArucoDockingManager(object):
     is_in_view = False  # aruco marker detected
     is_charging = False
     is_in_range = False  # charging station within coil range
-
-    # don't think these booleans are actually used
-    is_in_action = False
-    is_final_jog = False
-    is_turning = False
-    is_looking = False
-    is_jogging = False
-    is_undocked = True
-    is_undocking = False
-    docking_failed = False
 
     aruco_last_time = rospy.Time()
     last_dock_aruco_tf = Transform()
@@ -335,7 +327,6 @@ class ArucoDockingManager(object):
         if self.undocking_state == "reversing":
             rospy.logwarn("Undock turning")
             self.openrover_turn(3.0)
-            self.is_undocked = True
             self.undocking_state = "turning"
             return
         self.set_docking_state("undocked")
@@ -357,15 +348,6 @@ class ArucoDockingManager(object):
         self.is_in_view = False
         self.is_charging = False
         self.is_in_range = False
-
-        self.is_looking = False
-        self.is_undocked = True
-        self.is_in_action = False
-        self.is_final_jog = False
-        self.is_turning = False
-        self.is_jogging = False
-        self.is_undocking = False
-        self.docking_failed = False
 
         self.aruco_last_time = rospy.Time()
         self.set_action_state("")
@@ -391,7 +373,6 @@ class ArucoDockingManager(object):
             rospy.loginfo("jog_period: %f", jog_period)
 
             # this timer callback handles stopping at end of jog period
-            # - sets bools is_in_action and is_jogging to False
             # - calls openrover_stop, which sets vel cmds to 0 and action state to ""
             self.linear_timer = rospy.Timer(
                 rospy.Duration(jog_period), self.openrover_linear_timer_cb, oneshot=True
@@ -453,7 +434,6 @@ class ArucoDockingManager(object):
                 turn_period = self.MIN_TURN_PERIOD
 
             # this timer callback handles stopping at end of turn period
-            # - sets bools is_in_action and is_turning to False
             # - calls openrover_stop, which sets vel cmds to 0 and action state to ""
             self.turn_timer = rospy.Timer(
                 rospy.Duration(turn_period), self.openrover_turn_timer_cb, oneshot=True
@@ -521,7 +501,6 @@ class ArucoDockingManager(object):
             self.docking_state == "cancelled"
         ):
             self.set_docking_state("undocked")
-            self.is_undocked = True
             self.openrover_stop()
             self.docking_timer.shutdown()
 
@@ -580,13 +559,9 @@ class ArucoDockingManager(object):
     def openrover_turn_timer_cb(self, event):
         rospy.loginfo("openrover_turn_timer_cb: Turning ended")
         self.openrover_stop()
-        self.is_turning = False
-        self.is_in_action = False
 
     def openrover_linear_timer_cb(self, event):
         rospy.loginfo("openrover_linear_timer_cb: Stop moving forward")
-        self.is_jogging = False
-        self.is_in_action = False
         self.openrover_stop()
 
     def openrover_charging_cb(self, charging_msg):
@@ -597,7 +572,7 @@ class ArucoDockingManager(object):
         try:
             data = self.in_range_service(name="CCHK").value
             # rospy.loginfo("wibotics service call gave: %s", data)
-            if data == 1409286812:
+            if data == WIBOTICS_ANTENNA_DETECTED:
                 self.is_in_range = True
             self.docked_fun()
         except rospy.ServiceException as e:
