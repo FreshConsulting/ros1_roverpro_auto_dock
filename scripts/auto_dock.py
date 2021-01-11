@@ -18,6 +18,7 @@ from fiducial_msgs.msg import FiducialTransformArray
 from tf.transformations import *
 
 import rr_auto_dock.msg
+
 from wibotic_msg.srv import ReadParameter
 
 WIBOTICS_ANTENNA_DETECTED = 1409286812
@@ -26,7 +27,6 @@ START_DELAY = 2.0  # is this necessary?
 MIN_TURN_PERIOD = 0.18
 MAX_RUN_TIMEOUT = 240  # in seconds
 ARUCO_WAIT_TIMEOUT = 2  # in seconds
-CANCELLED_TIMEOUT = 10  # in seconds
 Z_TRANS_OFFSET = 0  # 0.5
 DOCKING_STATE_LIST = {
     "undocked",
@@ -218,6 +218,7 @@ class ArucoDockingManager(object):
 
         if self.docking_state == "cancelled":
             self.disable_aruco_detections()
+            self.cancelled_state_fun()
 
         action_state_data = "%s | %s" % (self.docking_state, self.action_state)
         self.publish_action_state(action_state_data)
@@ -243,6 +244,8 @@ class ArucoDockingManager(object):
     def undocked_state_fun(self):
         self.set_action_state("")
 
+    # TODO - this doesn't seem to have an exit path if a marker isn't found
+    # need to implement a timeout or something
     def searching_state_fun(self):
         # rospy.loginfo("searching aruco count: %i", self.aruco_callback_counter)
         self.centering_counter = 0
@@ -356,6 +359,11 @@ class ArucoDockingManager(object):
             self.openrover_turn(3.0)
             self.undocking_state = "turning"
             return
+        self.set_docking_state("undocked")
+
+    def cancelled_state_fun(self):
+        self.openrover_stop()
+        self.full_reset()
         self.set_docking_state("undocked")
 
     def publish_docking_state(self):  # Publish docking state if it has changed
@@ -490,7 +498,7 @@ class ArucoDockingManager(object):
 
         rospy.loginfo("starting docking")
         self.openrover_stop()
-        rospy.sleep(START_DELAY)
+        rospy.sleep(START_DELAY)  # TODO is this really necessary?
         if goal and not (self.docking_state == "docked"):
             self.set_docking_state("searching")
             self.docking_timer = rospy.Timer(
@@ -501,12 +509,17 @@ class ArucoDockingManager(object):
             self._dock_feedback.docking_state = self.docking_state
             self._dock_action_server.publish_feedback(self._dock_feedback)
 
+            if self._dock_action_server.is_preempt_requested():
+                rospy.loginfo("docking cancelled")
+                self.set_docking_state("cancelled")
+
             if self.docking_state in ["docking_failed", "cancelled"]:
                 success = False
                 break
             r.sleep()
 
-        self._dock_action_server.set_succeeded(result={"docked": success})
+        self._dock_result.docked = success
+        self._dock_action_server.set_succeeded(self._dock_result)
 
     def execute_undock_cb(self, goal):
         """execute undock action"""
@@ -523,34 +536,11 @@ class ArucoDockingManager(object):
         while not self.docking_state == "undocked" and not rospy.is_shutdown():
             self._undock_feedback.docking_state = self.docking_state
             self._undock_action_server.publish_feedback(self._undock_feedback)
-            # TODO: currently there is no undocking failure path
+            # TODO: currently there is no undocking failure path; maybe that's fine?
             r.sleep()
 
-        self._undock_action_server.set_succeeded(result={"undocked": success})
-
-    def cancel_docking(self, event):
-        """execute cancel docking action"""
-        # TODO determine whether we do need an action for this
-        # it is cancelled immediately - could be a service call
-        success = True
-        r = rospy.Rate(self.action_server_rate)
-
-        rospy.loginfo("cancelling docking")
-        if event.data:
-            self.set_docking_state("cancelled")
-            self.openrover_stop()
-            self.full_reset()
-            self.cancelled_timer = rospy.Timer(
-                rospy.Duration(CANCELLED_TIMEOUT),
-                self.cancelled_timer_cb,
-                oneshot=True,
-            )
-        # wrong action servier - placeholder
-        self._dock_action_server.set_succeeded(result={"cancelled": success})
-
-    def cancelled_timer_cb(self, event):
-        rospy.loginfo("cancelled_timer_cb")
-        self.set_docking_state("undocked")
+        self._undock_result.undocked = success
+        self._undock_action_server.set_succeeded(self._undock_result)
 
     def wait_now_cb(self, event):
         rospy.loginfo("wait_now_cb")
