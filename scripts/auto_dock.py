@@ -16,7 +16,6 @@ from geometry_msgs.msg import Transform
 from fiducial_msgs.msg import FiducialTransformArray
 from wibotic_msg.srv import ReadParameter
 
-# from tf.msgs import tf
 from tf.transformations import *
 
 
@@ -154,7 +153,6 @@ class ArucoDockingManager(object):
         self.state_manager_timer = rospy.Timer(
             rospy.Duration(self.MANAGER_PERIOD), self.state_manage_cb, oneshot=False
         )
-        # self.docking_timer = rospy.Timer(rospy.Duration(self.MAX_RUN_TIMEOUT), self.docking_failed_cb, oneshot=True)
 
     def state_manage_cb(self, event):
         # rospy.loginfo("%s | %s", self.docking_state, self.last_docking_state)
