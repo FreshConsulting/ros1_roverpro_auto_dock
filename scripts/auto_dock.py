@@ -125,17 +125,6 @@ class ArucoDockingManager(object):
             queue_size=1,
         )
 
-        # TODO delete these subscriptions once action servers are completed
-        # self.sub_undock = rospy.Subscriber(
-        #     "/auto_dock/undock", Bool, self.undock_cb, queue_size=1
-        # )
-        # self.sub_cancel_auto_dock = rospy.Subscriber(
-        #     "/auto_dock/cancel", Bool, self.cancel_cb, queue_size=1
-        # )
-        # self.sub_start = rospy.Subscriber(
-        #     "/auto_dock/dock", Bool, self.start_cb, queue_size=1
-        # )
-
         # service for determining whether we're in range of the charging station
         rospy.loginfo("Waiting for service wibotic_connector_can/read_parameter...")
         try:
