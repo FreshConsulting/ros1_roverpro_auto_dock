@@ -34,10 +34,10 @@ DOCKING_STATE_LIST = {
     "centering",
     "approach",
     "final_approach",
-    "wait_for_charge",
+    "waiting_for_in_range",
     "docking_failed",
     "docked",
-    "undock",
+    "undocking",
 }
 ACTION_STATE_LIST = {
     "turning",
@@ -67,7 +67,7 @@ class ArucoDockingManager(object):
         self.jog_distance = rospy.get_param("~jog_distance")
         self.final_approach_distance = rospy.get_param("~final_approach_distance")
         self.undock_distance = rospy.get_param("~undock_distance")
-        self.charge_wait_time = rospy.get_param("~charge_wait_time")
+        self.in_range_wait_time = rospy.get_param("~in_range_wait_time")
         # travel distance is achieved by sending vel commands for [distance/linear_rate] seconds
         # this is a correction based on testing; would need to be tuned for any given scenario
         self.open_loop_correction = rospy.get_param("~open_loop_correction")
@@ -79,7 +79,6 @@ class ArucoDockingManager(object):
         self.cmd_vel_linear = 0
         self.cmd_vel_msg = TwistStamped()
         self.is_in_view = False  # aruco marker detected
-        self.is_charging = False
         self.is_in_antenna_range = False  # charging station within coil range
         self.aruco_last_time = rospy.Time()
         self.last_dock_aruco_tf = Transform()
@@ -116,12 +115,6 @@ class ArucoDockingManager(object):
             "/fiducial_transforms",
             FiducialTransformArray,
             self.aruco_detect_cb,
-            queue_size=1,
-        )
-        self.sub_openrover_charging = rospy.Subscriber(
-            "rr_openrover_basic/charging",
-            Bool,
-            self.openrover_charging_cb,
             queue_size=1,
         )
 
@@ -166,7 +159,7 @@ class ArucoDockingManager(object):
 
     def state_manage_cb(self, event):
         # rospy.loginfo("%s | %s", self.docking_state, self.last_docking_state)
-        if self.docking_state == "undock":
+        if self.docking_state == "undocking":
             self.disable_aruco_detections()
             self.undock_state_fun()
 
@@ -193,9 +186,9 @@ class ArucoDockingManager(object):
             self.final_approach_state_fun()
             self.in_antenna_range_service_call()
 
-        if self.docking_state == "wait_for_charge":
+        if self.docking_state == "waiting_for_in_range":
             self.disable_aruco_detections()
-            self.wait_for_charge_state_fun()
+            self.waiting_for_in_range_state_fun()
             self.in_antenna_range_service_call()
 
         if self.docking_state == "docked":
@@ -319,16 +312,16 @@ class ArucoDockingManager(object):
         if self.action_state == "":
             # the linear timer for the forward command called in approach_state_fun
             # has timed out and the rover has stopped (presumably adjacent to charger)
-            self.set_docking_state("wait_for_charge")
+            self.set_docking_state("waiting_for_in_range")
 
-    def wait_for_charge_state_fun(self):
-        # sometimes can take a couple seconds for the in_antenna_range or charge
+    def waiting_for_in_range_state_fun(self):
+        # sometimes can take a couple seconds for the in_antenna_range
         # confirmation to be received
         if self.action_state == "":
-            rospy.loginfo("WAITING FOR CHARGE")
+            rospy.loginfo("Waiting for antenna detection")
             self.set_action_state("waiting")
             self.waiting_timer = rospy.Timer(
-                rospy.Duration(self.charge_wait_time),
+                rospy.Duration(self.in_range_wait_time),
                 self.docking_failed_cb,
                 oneshot=True,
             )
@@ -370,7 +363,6 @@ class ArucoDockingManager(object):
         self.cmd_vel_angular = 0
         self.cmd_vel_linear = 0
         self.is_in_view = False
-        self.is_charging = False
         self.is_in_antenna_range = False
 
         self.aruco_last_time = rospy.Time()
@@ -519,7 +511,7 @@ class ArucoDockingManager(object):
         if not self.docking_state == "cancelled":
             self.openrover_stop()
             self.full_reset()
-            self.set_docking_state("undock")
+            self.set_docking_state("undocking")
             self.set_action_state("")
 
         while not self.docking_state == "undocked" and not rospy.is_shutdown():
@@ -533,7 +525,7 @@ class ArucoDockingManager(object):
 
     def wait_now_cb(self, event):
         rospy.loginfo("wait_now_cb")
-        if not (self.docking_state in ["docked", "wait_for_charge"]) and not (
+        if not (self.docking_state in ["docked", "waiting_for_in_range"]) and not (
             self.docking_state == "cancelled"
         ):
             self.set_docking_state("undocked")
@@ -541,7 +533,7 @@ class ArucoDockingManager(object):
             self.docking_timer.shutdown()
 
     def aruco_detect_cb(self, fid_tf_array):
-        if not (self.docking_state in ["docked", "wait_for_charge"]) and not (
+        if not (self.docking_state in ["docked", "waiting_for_in_range"]) and not (
             self.docking_state == "cancelled"
         ):
 
@@ -588,10 +580,6 @@ class ArucoDockingManager(object):
         rospy.loginfo("openrover_linear_timer_cb: Stop moving forward")
         self.openrover_stop()
 
-    def openrover_charging_cb(self, charging_msg):
-        self.is_charging = charging_msg.data
-        self.docked_fun()
-
     def in_antenna_range_service_call(self):
         try:
             data = self.in_antenna_range_service(name="CCHK").value
@@ -603,9 +591,9 @@ class ArucoDockingManager(object):
             rospy.logwarn("error calling wibotic connector service: %s", e)
 
     def docked_fun(self):
-        if self.docking_state == "undock":
+        if self.docking_state == "undocking":
             return
-        if self.is_charging or self.is_in_antenna_range:
+        if self.is_in_antenna_range:
             if not self.docking_state == "docked":
                 self.full_reset()
                 self.openrover_stop()
@@ -617,7 +605,7 @@ class ArucoDockingManager(object):
                 self.set_docking_state("undocked")
 
     def stop_waiting(self):
-        rospy.loginfo("shutting down wait-for-charge timer")
+        rospy.loginfo("shutting down wait-for-in-range timer")
         if self.action_state == "waiting":
             self.set_action_state("")
         try:
