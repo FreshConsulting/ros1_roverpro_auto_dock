@@ -41,7 +41,7 @@ add_service_files(
 
 add_action_files(
   FILES 
-  autodock.action 
+  AutoDock.action 
 )
 
 generate_messages(

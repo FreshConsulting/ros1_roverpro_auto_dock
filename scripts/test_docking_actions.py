@@ -10,13 +10,13 @@ class TestDockingClient:
     def __init__(self):
         rospy.loginfo("launching test client node")
         self._dock_client = actionlib.SimpleActionClient(
-            "/auto_dock/dock", rr_auto_dock.msg.autodockAction
+            "/auto_dock/dock", rr_auto_dock.msg.AutoDockAction
         )
         self._undock_client = actionlib.SimpleActionClient(
-            "/auto_dock/undock", rr_auto_dock.msg.autodockAction
+            "/auto_dock/undock", rr_auto_dock.msg.AutoDockAction
         )
-        self.dock_goal = rr_auto_dock.msg.autodockGoal()
-        self.undock_goal = rr_auto_dock.msg.autodockGoal()
+        self.dock_goal = rr_auto_dock.msg.AutoDockGoal()
+        self.undock_goal = rr_auto_dock.msg.AutoDockGoal()
 
         rospy.loginfo("Test Client waiting for action servers...")
         self._dock_client.wait_for_server()

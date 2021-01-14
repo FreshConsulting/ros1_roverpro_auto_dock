@@ -19,7 +19,7 @@ from tf.transformations import *
 
 import rr_auto_dock.msg
 
-# from wibotic_msg.srv import ReadParameter
+from wibotic_msg.srv import ReadParameter
 
 WIBOTICS_ANTENNA_DETECTED = 1409286812
 MANAGER_PERIOD = 0.1
@@ -125,35 +125,35 @@ class ArucoDockingManager(object):
             queue_size=1,
         )
 
-        # # service for determining whether we're in range of the charging station
-        # rospy.loginfo("Waiting for service wibotic_connector_can/read_parameter...")
-        # try:
-        #     rospy.wait_for_service("wibotic_connector_can/read_parameter", timeout=10)
-        # except (rospy.ServiceException, rospy.ROSException) as e:
-        #     rospy.logwarn(
-        #         "%s: Autodocking node timed out waiting for wibotic service", e
-        #     )
-        # self.in_antenna_range_service = rospy.ServiceProxy(
-        #     "wibotic_connector_can/read_parameter", ReadParameter
-        # )
+        # service for determining whether we're in range of the charging station
+        rospy.loginfo("Waiting for service wibotic_connector_can/read_parameter...")
+        try:
+            rospy.wait_for_service("wibotic_connector_can/read_parameter", timeout=10)
+        except (rospy.ServiceException, rospy.ROSException) as e:
+            rospy.logwarn(
+                "%s: Autodocking node timed out waiting for wibotic service", e
+            )
+        self.in_antenna_range_service = rospy.ServiceProxy(
+            "wibotic_connector_can/read_parameter", ReadParameter
+        )
 
         self.action_server_rate = 1  # Hz
         # setup dock action server
-        self._dock_feedback = rr_auto_dock.msg.autodockFeedback()
-        self._dock_result = rr_auto_dock.msg.autodockResult()
+        self._dock_feedback = rr_auto_dock.msg.AutoDockFeedback()
+        self._dock_result = rr_auto_dock.msg.AutoDockResult()
         self._dock_action_server = actionlib.SimpleActionServer(
             "/auto_dock/dock",
-            rr_auto_dock.msg.autodockAction,
+            rr_auto_dock.msg.AutoDockAction,
             execute_cb=self.execute_dock_cb,
             auto_start=False,
         )
         self._dock_action_server.start()
         # setup undock action server
-        self._undock_feedback = rr_auto_dock.msg.autodockFeedback()
-        self._undock_result = rr_auto_dock.msg.autodockResult()
+        self._undock_feedback = rr_auto_dock.msg.AutoDockFeedback()
+        self._undock_result = rr_auto_dock.msg.AutoDockResult()
         self._undock_action_server = actionlib.SimpleActionServer(
             "/auto_dock/undock",
-            rr_auto_dock.msg.autodockAction,
+            rr_auto_dock.msg.AutoDockAction,
             execute_cb=self.execute_undock_cb,
             auto_start=False,
         )
@@ -186,17 +186,17 @@ class ArucoDockingManager(object):
         if self.docking_state == "approach":
             self.enable_aruco_detections()
             self.approach_state_fun()
-            # self.in_antenna_range_service_call()
+            self.in_antenna_range_service_call()
 
         if self.docking_state == "final_approach":
             self.enable_aruco_detections()
             self.final_approach_state_fun()
-            # self.in_antenna_range_service_call()
+            self.in_antenna_range_service_call()
 
         if self.docking_state == "wait_for_charge":
             self.disable_aruco_detections()
             self.wait_for_charge_state_fun()
-            # self.in_antenna_range_service_call()
+            self.in_antenna_range_service_call()
 
         if self.docking_state == "docked":
             self.disable_aruco_detections()
