@@ -1,8 +1,0 @@
-#goal
-bool dock
----
-#result
-bool docked
----
-#feedback
-string docking_state

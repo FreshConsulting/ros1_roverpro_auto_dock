@@ -1,8 +1,6 @@
-#goal
-bool undock
 ---
 #result
-bool undocked
+bool complete
 ---
 #feedback
 string docking_state

@@ -10,13 +10,13 @@ class TestDockingClient:
     def __init__(self):
         rospy.loginfo("launching test client node")
         self._dock_client = actionlib.SimpleActionClient(
-            "/autodock/dock", rr_auto_dock.msg.dockAction
+            "/auto_dock/dock", rr_auto_dock.msg.autodockAction
         )
         self._undock_client = actionlib.SimpleActionClient(
-            "/autodock/undock", rr_auto_dock.msg.undockAction
+            "/auto_dock/undock", rr_auto_dock.msg.autodockAction
         )
-        self.dock_goal = rr_auto_dock.msg.dockGoal(dock=True)
-        self.undock_goal = rr_auto_dock.msg.undockGoal(undock=True)
+        self.dock_goal = rr_auto_dock.msg.autodockGoal()
+        self.undock_goal = rr_auto_dock.msg.autodockGoal()
 
         rospy.loginfo("Test Client waiting for action servers...")
         self._dock_client.wait_for_server()
@@ -55,7 +55,7 @@ class TestDockingClient:
 
 def test_undock(client):
     rospy.loginfo("testing undock action")
-    assert client.undock().undocked == True
+    assert client.undock().complete == True
 
 
 def test_dock(client):
@@ -67,7 +67,7 @@ def test_dock(client):
 
 def test_preempt(client):
     rospy.loginfo("testing preempt dock action")
-    assert client.cancel_dock().docked == False
+    assert client.cancel_dock().complete == False
 
 
 if __name__ == "__main__":
