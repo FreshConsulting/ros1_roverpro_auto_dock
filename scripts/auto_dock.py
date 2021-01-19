@@ -118,17 +118,7 @@ class ArucoDockingManager(object):
             queue_size=1,
         )
 
-        # service for determining whether we're in range of the charging station
-        rospy.loginfo("Waiting for service wibotic_connector_can/read_parameter...")
-        try:
-            rospy.wait_for_service("wibotic_connector_can/read_parameter", timeout=10)
-        except (rospy.ServiceException, rospy.ROSException) as e:
-            rospy.logwarn(
-                "%s: Autodocking node timed out waiting for wibotic service", e
-            )
-        self.in_antenna_range_service = rospy.ServiceProxy(
-            "wibotic_connector_can/read_parameter", ReadParameter
-        )
+        self.init_wibotics_service_proxy()
 
         self.action_server_rate = 1  # Hz
         # setup dock action server
@@ -155,6 +145,20 @@ class ArucoDockingManager(object):
         # Setup main timer/frequency for state machine
         self.state_manager_timer = rospy.Timer(
             rospy.Duration(MANAGER_PERIOD), self.state_manage_cb, oneshot=False
+        )
+
+    def init_wibotics_service_proxy(self):
+        """service for determining whether we're in range of the charging station"""
+
+        rospy.loginfo("Waiting for service wibotic_connector_can/read_parameter...")
+        try:
+            rospy.wait_for_service("wibotic_connector_can/read_parameter", timeout=10)
+        except (rospy.ServiceException, rospy.ROSException) as e:
+            rospy.logwarn(
+                "%s: Autodocking node timed out waiting for wibotic service", e
+            )
+        self.in_antenna_range_service = rospy.ServiceProxy(
+            "wibotic_connector_can/read_parameter", ReadParameter
         )
 
     def state_manage_cb(self, event):
