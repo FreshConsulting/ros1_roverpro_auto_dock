@@ -22,6 +22,8 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(OpenCV REQUIRED)
 
+catkin_python_setup()
+
 generate_dynamic_reconfigure_options(cfg/DetectorParams.cfg)
 
 add_message_files(

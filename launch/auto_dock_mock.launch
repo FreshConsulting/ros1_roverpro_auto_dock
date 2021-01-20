@@ -1,7 +1,7 @@
 <launch>
 
   <node name="auto_dock" pkg="rr_auto_dock" type="auto_dock_mock.py" output="screen">
-    <param name="cmd_vel_angular_rate" value="0.3" />
+    <param name="cmd_vel_angular_rate" value="1.0" />
     <param name="cmd_vel_linear_rate" value="0.1" />
     <param name="undock_distance" value="1.1" />
     <param name="turn_radians" value="0.2" />
@@ -18,10 +18,15 @@
   <include file="$(find rr_auto_dock)/launch/aruco_detect.launch">
   </include>
 
-  <include file="$(find realsense2_camera)/launch/rs_d435_camera_with_model.launch">
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="enable_infra1" value="false"/>
+    <arg name="enable_infra2" value="false"/>
+    <arg name="color_width" default="1920"/>
+    <arg name="color_height" default="1080"/>
+    <arg name="color_fps" default="6"/>
   </include>
 
-  <include file="$(find rr_rover_zero_driver)/launch/teleop.launch">
+  <include file="$(find rr_openrover_basic)/launch/teleop.launch">
   </include>
 
   <include file="$(find wibotic_connector_can)/launch/wibotic_connector_can.launch">
