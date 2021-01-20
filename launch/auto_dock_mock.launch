@@ -2,9 +2,9 @@
 
   <node name="auto_dock" pkg="rr_auto_dock" type="auto_dock_mock.py" output="screen">
     <param name="cmd_vel_angular_rate" value="1.0" />
-    <param name="cmd_vel_linear_rate" value="0.1" />
-    <param name="undock_distance" value="1.1" />
-    <param name="turn_radians" value="0.2" />
+    <param name="cmd_vel_linear_rate" value="0.2" />
+    <param name="undock_distance" value="1.0" />
+    <param name="turn_radians" value="0.4" />
     <param name="approach_angle" value="0.1" />
     <param name="approach_radius" value="2.0" />
     <param name="aruco_callback_counter_max" value="5" />
@@ -12,7 +12,7 @@
     <param name="jog_distance" value="0.2" />
     <param name="final_approach_distance" value="0.8" />
     <param name="in_range_wait_time" value="8" />
-    <param name="open_loop_correction" value="0.6" />
+    <param name="open_loop_correction" value="0.95" />
   </node>
 
   <include file="$(find rr_auto_dock)/launch/aruco_detect.launch">
@@ -26,10 +26,6 @@
     <arg name="color_fps" default="6"/>
   </include>
 
-  <include file="$(find rr_openrover_basic)/launch/teleop.launch">
-  </include>
-
-  <include file="$(find wibotic_connector_can)/launch/wibotic_connector_can.launch">
-  </include>
+  <!-- <include file="$(find rr_openrover_basic)/launch/teleop.launch" /> -->
 
 </launch>

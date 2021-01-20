@@ -19,6 +19,8 @@ from tf.transformations import *
 
 import rr_auto_dock.msg
 
+from harmony_msgs.msg import AutoDockAction, AutoDockActionGoal
+
 from wibotic_msg.srv import ReadParameter
 
 WIBOTICS_ANTENNA_DETECTED = 1409286812
@@ -126,7 +128,7 @@ class ArucoDockingManager(object):
         self._dock_result = rr_auto_dock.msg.AutoDockResult()
         self._dock_action_server = actionlib.SimpleActionServer(
             "/auto_dock/dock",
-            rr_auto_dock.msg.AutoDockAction,
+            AutoDockAction,
             execute_cb=self.execute_dock_cb,
             auto_start=False,
         )
@@ -136,7 +138,7 @@ class ArucoDockingManager(object):
         self._undock_result = rr_auto_dock.msg.AutoDockResult()
         self._undock_action_server = actionlib.SimpleActionServer(
             "/auto_dock/undock",
-            rr_auto_dock.msg.AutoDockAction,
+            AutoDockAction,
             execute_cb=self.execute_undock_cb,
             auto_start=False,
         )
@@ -342,7 +344,7 @@ class ArucoDockingManager(object):
             return
         if self.undocking_state == "reversing":
             rospy.logwarn("Undock turning")
-            self.openrover_turn(3.0)
+            self.openrover_turn(3.14)
             self.undocking_state = "turning"
             return
         self.set_docking_state("undocked")
