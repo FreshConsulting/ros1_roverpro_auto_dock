@@ -1,0 +1,6 @@
+---
+#result
+bool complete
+---
+#feedback
+string docking_state

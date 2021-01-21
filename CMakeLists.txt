@@ -17,9 +17,12 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   message_generation
   nodelet
+  actionlib_msgs
 )
 
 find_package(OpenCV REQUIRED)
+
+catkin_python_setup()
 
 generate_dynamic_reconfigure_options(cfg/DetectorParams.cfg)
 
@@ -38,10 +41,22 @@ add_service_files(
   InitializeMap.srv
 )
 
+add_action_files(
+  FILES 
+  AutoDock.action 
+)
+
+generate_messages(
+  DEPENDENCIES 
+  actionlib_msgs
+  std_msgs
+  visualization_msgs
+)
+
 catkin_package(
   LIBRARIES image_sub_nodelet
   INCLUDE_DIRS DEPENDS OpenCV
-  CATKIN_DEPENDS nodelet message_runtime roscpp std_msgs
+  CATKIN_DEPENDS nodelet message_runtime roscpp std_msgs actionlib_msgs
 )
 
 

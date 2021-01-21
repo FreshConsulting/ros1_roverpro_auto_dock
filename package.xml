@@ -29,6 +29,8 @@
   <depend>opencv3</depend>
   <depend>dynamic_reconfigure</depend>
   <depend>nodelet</depend>
+  <depend>actionlib</depend>
+  <depend>actionlib_msgs</depend>
 
   <build_depend>message_generation</build_depend>
   <build_export_depend>message_runtime</build_export_depend>
