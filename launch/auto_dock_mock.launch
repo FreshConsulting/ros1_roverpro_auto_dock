@@ -1,5 +1,7 @@
 <launch>
 
+  <!-- currently these parameters are tuned for rover pro -->
+
   <node name="auto_dock" pkg="rr_auto_dock" type="auto_dock_mock.py" output="screen">
     <param name="cmd_vel_angular_rate" value="1.0" />
     <param name="cmd_vel_linear_rate" value="0.2" />
@@ -12,7 +14,8 @@
     <param name="jog_distance" value="0.2" />
     <param name="final_approach_distance" value="0.8" />
     <param name="in_range_wait_time" value="8" />
-    <param name="open_loop_correction" value="0.95" />
+    <param name="linear_correction" value="0.95" />
+    <param name="angular_correction" value="1.0" />
   </node>
 
   <include file="$(find rr_auto_dock)/launch/aruco_detect.launch">

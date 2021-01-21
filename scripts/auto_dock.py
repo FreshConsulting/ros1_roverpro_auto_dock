@@ -17,15 +17,18 @@ from geometry_msgs.msg import Transform
 from fiducial_msgs.msg import FiducialTransformArray
 from tf.transformations import *
 
-import rr_auto_dock.msg
-
-from harmony_msgs.msg import AutoDockAction, AutoDockActionGoal
+from harmony_msgs.msg import (
+    AutoDockAction,
+    AutoDockActionGoal,
+    AutoDockFeedback,
+    AutoDockResult,
+)
 
 from wibotic_msg.srv import ReadParameter
 
 WIBOTICS_ANTENNA_DETECTED = 1409286812
 MANAGER_PERIOD = 0.1
-START_DELAY = 2.0  # is this necessary?
+START_DELAY = 1.0  # is this necessary?
 MIN_TURN_PERIOD = 0.18
 MAX_RUN_TIMEOUT = 240  # in seconds
 ARUCO_WAIT_TIMEOUT = 2  # in seconds
@@ -70,9 +73,10 @@ class ArucoDockingManager(object):
         self.final_approach_distance = rospy.get_param("~final_approach_distance")
         self.undock_distance = rospy.get_param("~undock_distance")
         self.in_range_wait_time = rospy.get_param("~in_range_wait_time")
-        # travel distance is achieved by sending vel commands for [distance/linear_rate] seconds
+        # linear and angular distance is achieved with a simple timer (open-loop)
         # this is a correction based on testing; would need to be tuned for any given scenario
-        self.open_loop_correction = rospy.get_param("~open_loop_correction")
+        self.linear_correction = rospy.get_param("~linear_correction")
+        self.angular_correction = rospy.get_param("~angular_correction")
 
         # initialize variables
         self.aruco_callback_counter = 0
@@ -124,8 +128,8 @@ class ArucoDockingManager(object):
 
         self.action_server_rate = 1  # Hz
         # setup dock action server
-        self._dock_feedback = rr_auto_dock.msg.AutoDockFeedback()
-        self._dock_result = rr_auto_dock.msg.AutoDockResult()
+        self._dock_feedback = AutoDockFeedback()
+        self._dock_result = AutoDockResult()
         self._dock_action_server = actionlib.SimpleActionServer(
             "/auto_dock/dock",
             AutoDockAction,
@@ -134,8 +138,8 @@ class ArucoDockingManager(object):
         )
         self._dock_action_server.start()
         # setup undock action server
-        self._undock_feedback = rr_auto_dock.msg.AutoDockFeedback()
-        self._undock_result = rr_auto_dock.msg.AutoDockResult()
+        self._undock_feedback = AutoDockFeedback()
+        self._undock_result = AutoDockResult()
         self._undock_action_server = actionlib.SimpleActionServer(
             "/auto_dock/undock",
             AutoDockAction,
@@ -390,7 +394,7 @@ class ArucoDockingManager(object):
         if self.action_state == "":
             self.set_action_state("jogging")
             jog_period = (
-                abs(distance) / self.cmd_vel_linear_rate * self.open_loop_correction
+                abs(distance) / self.cmd_vel_linear_rate * self.linear_correction
             )
             rospy.loginfo("jog_period: %f", jog_period)
 
@@ -458,6 +462,7 @@ class ArucoDockingManager(object):
                 rospy.Duration(turn_period), self.openrover_turn_timer_cb, oneshot=True
             )
 
+            radians = radians * self.angular_correction
             if radians > 0:
                 rospy.loginfo("Turn right for %f", turn_period)
                 self.cmd_vel_angular = -self.cmd_vel_angular_rate
